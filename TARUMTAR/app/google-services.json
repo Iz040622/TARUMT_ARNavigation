@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "572056855711",
+    "project_id": "fyp-test-270d6",
+    "storage_bucket": "fyp-test-270d6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:572056855711:android:6cfc2cea895778818d2eaa",
+        "android_client_info": {
+          "package_name": "com.example.tarumtar"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDt562mrLWT9-a0SezvQCcOih6I-6WkQ94"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

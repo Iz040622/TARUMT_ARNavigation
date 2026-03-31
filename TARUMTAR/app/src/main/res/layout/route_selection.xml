@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Start -->
+    <AutoCompleteTextView
+        android:id="@+id/etStart"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:hint="Start (e.g., N001 - Block B)"
+        android:background="@android:drawable/edit_text"
+        android:padding="10dp"
+        android:completionThreshold="1" />
+
+    <!-- End -->
+    <AutoCompleteTextView
+        android:id="@+id/etEnd"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="8dp"
+        android:hint="End (e.g., N010 - Block A)"
+        android:background="@android:drawable/edit_text"
+        android:padding="10dp"
+        android:completionThreshold="1" />
+
+    <Button
+        android:id="@+id/btnShowPaths"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="Show 3 Paths" />
+
+    <org.osmdroid.views.MapView
+        android:id="@+id/osmMap"
+        android:layout_width="match_parent"
+        android:layout_height="487dp" />
+
+    <Button
+        android:id="@+id/btnStartAR"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Start AR Navigation" />
+
+</LinearLayout>
