@@ -10,7 +10,8 @@ object pathFinder {
         nodes: List<Node>,
         edges: List<Edge>,
         startId: String,
-        endId: String
+        endId: String,
+        isSevereWeather: Boolean = false
     ): List<List<Node>> {
 
         val start = norm(startId)
@@ -25,7 +26,12 @@ object pathFinder {
         for (e in edges) {
             val from = norm(e.From)
             val to = norm(e.To)
-            val w = e.distance
+            
+            // Add Severe Weather Penalty: if rain/extreme heat and no shelter, penalize distance heavily
+            var w = e.distance
+            if (isSevereWeather && !e.isSheltered) {
+                w *= 10.0
+            }
 
             if (nodeMap.containsKey(from) && nodeMap.containsKey(to)) {
                 adj[from]?.add(to to w)

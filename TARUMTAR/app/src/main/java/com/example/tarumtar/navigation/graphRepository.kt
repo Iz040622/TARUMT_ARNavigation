@@ -39,7 +39,8 @@ class graphRepository(private val db: FirebaseFirestore = FirebaseFirestore.getI
                                     From = norm(doc.getString("From")),
                                     To = norm(doc.getString("To")),
                                     distance = (doc.get("distance") as? Number)?.toDouble() ?: 0.0,
-                                    bidirectional = doc.getBoolean("bidirectional") ?: true
+                                    bidirectional = doc.getBoolean("bidirectional") ?: true,
+                                    isSheltered = doc.getBoolean("isSheltered") ?: false
                                 )
                             )
                         }

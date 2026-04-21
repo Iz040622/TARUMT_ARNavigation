@@ -1,47 +1,189 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
-    android:padding="12dp"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@android:color/white"
+    android:fillViewport="true">
 
-    <!-- Start -->
-    <AutoCompleteTextView
-        android:id="@+id/etStart"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:hint="Start (e.g., N001 - Block B)"
-        android:background="@android:drawable/edit_text"
-        android:padding="10dp"
-        android:completionThreshold="1" />
-
-    <!-- End -->
-    <AutoCompleteTextView
-        android:id="@+id/etEnd"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:layout_marginTop="8dp"
-        android:hint="End (e.g., N010 - Block A)"
-        android:background="@android:drawable/edit_text"
-        android:padding="10dp"
-        android:completionThreshold="1" />
-
-    <Button
-        android:id="@+id/btnShowPaths"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:text="Show 3 Paths" />
+        android:orientation="vertical"
+        android:padding="12dp">
 
-    <org.osmdroid.views.MapView
-        android:id="@+id/osmMap"
-        android:layout_width="match_parent"
-        android:layout_height="487dp" />
+        <!-- Header: Logo & Weather Box -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingTop="8dp"
+            android:paddingBottom="12dp"
+            android:baselineAligned="false">
 
-    <Button
-        android:id="@+id/btnStartAR"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Start AR Navigation" />
+            <!-- Logo -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="start|center_vertical"
+                android:orientation="vertical">
 
-</LinearLayout>
+                <TextView
+                    android:id="@+id/txtTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textAlignment="viewStart"
+                    android:textColor="@android:color/black"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/txtTitleBottom"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="TOUR GUIDE"
+                    android:textColor="@android:color/black"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+
+            <!-- Weather Box -->
+            <LinearLayout
+                android:id="@+id/layoutWeather"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/weather_box_bg"
+                android:gravity="end|center_vertical"
+                android:orientation="vertical"
+                android:padding="8dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/tvTemp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="--°C"
+                    android:textColor="@android:color/black"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvWeatherDesc"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Weather..."
+                    android:textColor="#555555"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/tvRainfall"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#0288D1"
+                    android:textSize="12sp"
+                    android:textStyle="italic"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Start -->
+        <AutoCompleteTextView
+            android:id="@+id/etStart"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:hint="Start (e.g., N001 - Block B)"
+            android:background="@android:drawable/edit_text"
+            android:padding="10dp"
+            android:completionThreshold="1" />
+
+        <!-- End -->
+        <AutoCompleteTextView
+            android:id="@+id/etEnd"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:hint="End (e.g., N010 - Block A)"
+            android:background="@android:drawable/edit_text"
+            android:padding="10dp"
+            android:completionThreshold="1" />
+
+        <Button
+            android:id="@+id/btnShowPaths"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Show Paths" />
+
+        <!-- Map -->
+        <org.osmdroid.views.MapView
+            android:id="@+id/osmMap"
+            android:layout_width="match_parent"
+            android:layout_height="220dp"
+            android:layout_marginTop="10dp" />
+
+        <!-- Route Selection Panel (shown after paths are found) -->
+        <LinearLayout
+            android:id="@+id/layoutRouteSelection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="12dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tvSelectPath"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Please Select Your Path:"
+                android:textSize="16sp"
+                android:textColor="@android:color/black"
+                android:layout_marginBottom="8dp" />
+
+            <Button
+                android:id="@+id/btnPath1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="6dp"
+                android:text="Path 1"
+                android:textColor="@android:color/black"
+                android:backgroundTint="#81D4FA"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/btnPath2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="6dp"
+                android:text="Path 2"
+                android:textColor="@android:color/black"
+                android:backgroundTint="#81D4FA"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/btnPath3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:text="Path 3"
+                android:textColor="@android:color/black"
+                android:backgroundTint="#81D4FA"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/btnStartAR"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="Start AR View"
+                android:textColor="@android:color/white"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:backgroundTint="#E53935" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>
