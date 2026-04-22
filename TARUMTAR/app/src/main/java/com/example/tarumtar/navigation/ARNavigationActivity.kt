@@ -71,15 +71,6 @@ class ARNavigationActivity : AppCompatActivity() {
 
     private val visibleArrowNodes = mutableMapOf<Int, Node>()
 
-    private var destinationRenderable: ModelRenderable? = null
-
-    private var destinationNode: Node? = null
-
-    private var destinationLocalPosition: Vector3? = null
-
-    private var destinationLocalRotation: Quaternion? = null
-
-
     data class RouteArrowPoint(
         val localPosition: Vector3,
         val localRotation: Quaternion
@@ -113,7 +104,6 @@ class ARNavigationActivity : AppCompatActivity() {
         }
 
         loadArrowModel()
-        loadDestinationModel()
         requestPermissionsIfNeeded()
         setupSceneUpdate()
 
@@ -167,24 +157,6 @@ class ARNavigationActivity : AppCompatActivity() {
                 Toast.makeText(
                     this,
                     "Failed to load direction_arrow.glb: ${error.message}",
-                    Toast.LENGTH_LONG
-                ).show()
-                null
-            }
-    }
-
-    private fun loadDestinationModel() {
-        ModelRenderable.builder()
-            .setSource(this, Uri.parse("models/destination.glb"))
-            .setIsFilamentGltf(true)
-            .build()
-            .thenAccept { renderable ->
-                destinationRenderable = renderable
-            }
-            .exceptionally { error ->
-                Toast.makeText(
-                    this,
-                    "Failed to load destination_marker.glb: ${error.message}",
                     Toast.LENGTH_LONG
                 ).show()
                 null
@@ -271,8 +243,9 @@ class ARNavigationActivity : AppCompatActivity() {
     private fun tryAutoPlaceRoute() {
         if (routePlaced) return
 
-        if (arrowRenderable == null || destinationRenderable == null) {
-            instrText.text = "Loading navigation models..."
+        val renderable = arrowRenderable
+        if (renderable == null) {
+            instrText.text = "Loading arrow model..."
             return
         }
 
@@ -342,8 +315,6 @@ class ARNavigationActivity : AppCompatActivity() {
 
         buildArrowPath(referenceLatLng, lockedHeadingDegrees)
 
-        addDestinationNode()
-
         if (arrowPoints.isEmpty()) {
             Toast.makeText(this, "Failed to build route.", Toast.LENGTH_SHORT).show()
             return
@@ -353,10 +324,9 @@ class ARNavigationActivity : AppCompatActivity() {
         instrText.text = "Route placed."
         refreshVisibleArrows(force = true)
     }
+
     private fun buildArrowPath(referenceLatLng: LatLng, headingDegrees: Float) {
         arrowPoints.clear()
-        destinationLocalPosition = null
-        destinationLocalRotation = null
 
         val converter = coordinatesHelper(referenceLatLng)
 
@@ -387,26 +357,17 @@ class ARNavigationActivity : AppCompatActivity() {
                 Quaternion.axisAngle(Vector3(0f, 1f, 0f), MODEL_YAW_OFFSET_DEG)
             )
 
-            // only add arrow for points before the final destination
-            if (i < sampledPoints.lastIndex - 1) {
-                arrowPoints += RouteArrowPoint(
-                    localPosition = current,
-                    localRotation = correctedRotation
-                )
-            } else {
-                destinationLocalPosition = next
-                destinationLocalRotation = correctedRotation
-            }
+            arrowPoints += RouteArrowPoint(
+                localPosition = current,
+                localRotation = correctedRotation
+            )
         }
 
-        // fallback if destination not set
-        if (destinationLocalPosition == null) {
-            destinationLocalPosition = sampledPoints.last()
-            destinationLocalRotation = if (arrowPoints.isNotEmpty()) {
-                arrowPoints.last().localRotation
-            } else {
-                Quaternion.identity()
-            }
+        if (arrowPoints.isNotEmpty()) {
+            arrowPoints += RouteArrowPoint(
+                localPosition = sampledPoints.last(),
+                localRotation = arrowPoints.last().localRotation
+            )
         }
     }
 
@@ -438,24 +399,6 @@ class ARNavigationActivity : AppCompatActivity() {
         return result
     }
 
-    private fun addDestinationNode() {
-        val root = rootAnchorNode ?: return
-        val renderable = destinationRenderable ?: return
-        val position = destinationLocalPosition ?: return
-        val rotation = destinationLocalRotation ?: Quaternion.identity()
-
-        destinationNode?.setParent(null)
-        destinationNode = null
-
-        destinationNode = Node().apply {
-            setParent(root)
-            this.renderable = renderable
-            localPosition = position
-            localRotation = rotation
-            localScale = Vector3(1.3f, 1.3f, 1.3f)
-        }
-    }
-
     private fun refreshVisibleArrows(force: Boolean) {
         val root = rootAnchorNode ?: return
         if (arrowPoints.isEmpty()) return
@@ -471,21 +414,6 @@ class ARNavigationActivity : AppCompatActivity() {
             if (d < nearestDistance) {
                 nearestDistance = d
                 nearestIndex = i
-            }
-        }
-
-        val destinationPos = destinationLocalPosition
-        if (destinationPos != null) {
-            val worldDestination = Vector3.add(root.worldPosition, destinationPos)
-            val distanceToDestination = Vector3.subtract(worldDestination, cameraWorldPos).length()
-
-            if (distanceToDestination < 2.0f) {
-                instrText.text = "You have arrived at your destination"
-
-                visibleArrowNodes.values.forEach { it.setParent(null) }
-                visibleArrowNodes.clear()
-
-                return
             }
         }
 

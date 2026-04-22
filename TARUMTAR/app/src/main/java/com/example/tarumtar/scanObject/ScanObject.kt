@@ -153,11 +153,7 @@ class ScanObject : AppCompatActivity() {
         val db = AugmentedImageDatabase(s)
 
         // Add as many images as you want (name must be unique)
-        addImageToDb(db, "blockA", "kitchen.jpeg")
         addImageToDb(db, "blockB", "blockB.png")
-        addImageToDb(db, "blockC", "livingroom.jpeg")
-        addImageToDb(db, "blockD", "masterroom.jpeg")
-
         config.augmentedImageDatabase = db
         return true
     }

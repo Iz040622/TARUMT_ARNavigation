@@ -5,9 +5,9 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.example.tarumtar.databinding.ActivityMainBinding
-import com.example.tarumtar.Navigation
 import com.example.tarumtar.navigation.routeSelectionActivity
 import com.example.tarumtar.scanObject.ScanObject
+import com.example.tarumtar.petModule.petARActivity
 import kotlin.jvm.java
 
 
@@ -74,7 +74,8 @@ class MainActivity : AppCompatActivity() {
 
 
         binding.cardPet.setOnClickListener {
-// TODO: My Pet
+            val intent = Intent(this, petARActivity::class.java)
+            startActivity(intent)
         }
 
 

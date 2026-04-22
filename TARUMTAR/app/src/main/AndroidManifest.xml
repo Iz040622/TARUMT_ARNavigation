@@ -35,13 +35,13 @@
 
         <activity android:name=".scanObject.ScanObject"/>
 
-        <activity android:name=".Navigation"/>
-
         <activity
             android:name=".navigation.routeSelectionActivity"
             android:exported="false" />
 
         <activity android:name=".navigation.ARNavigationActivity" />
+
+        <activity android:name=".petModule.petARActivity"/>
 
         <activity
             android:name=".ui.MainActivity"
