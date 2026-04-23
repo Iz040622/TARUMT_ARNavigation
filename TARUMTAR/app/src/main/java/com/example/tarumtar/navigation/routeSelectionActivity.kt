@@ -1,5 +1,6 @@
 package com.example.tarumtar.navigation
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
@@ -67,6 +68,9 @@ class routeSelectionActivity : AppCompatActivity() {
     private lateinit var tvWeatherDesc: TextView
     private lateinit var tvRainfall: TextView
 
+    private lateinit var etStart: AutoCompleteTextView
+    private lateinit var etEnd: AutoCompleteTextView
+
     private val pathButtons get() = listOf(btnPath1, btnPath2, btnPath3)
 
     private val httpClient = OkHttpClient()
@@ -123,8 +127,10 @@ class routeSelectionActivity : AppCompatActivity() {
         tvWeatherDesc = findViewById(R.id.tvWeatherDesc)
         tvRainfall = findViewById(R.id.tvRainfall)
 
-        val etStart = findViewById<AutoCompleteTextView>(R.id.etStart)
-        val etEnd   = findViewById<AutoCompleteTextView>(R.id.etEnd)
+        tvRainfall = findViewById(R.id.tvRainfall)
+
+        etStart = findViewById(R.id.etStart)
+        etEnd = findViewById(R.id.etEnd)
         val btnShow = findViewById<Button>(R.id.btnShowPaths)
 
         Toast.makeText(this, "Loading graph from Firebase...", Toast.LENGTH_SHORT).show()
@@ -145,6 +151,7 @@ class routeSelectionActivity : AppCompatActivity() {
 
                     // Fetch Weather for this location
                     fetchWeatherData(nodes.first().lat, nodes.first().lng)
+
 
                     val visibleNodes = nodes.filter { it.visible }
                     val labels = visibleNodes.map { it.label() }
@@ -338,13 +345,15 @@ class routeSelectionActivity : AppCompatActivity() {
     private fun drawPathsAndShowButtons(startId: String, endId: String) {
         clearRoutesOnly()
 
-        val paths = pathFinder.findTop3Paths(nodes, edges, startId, endId, isSevereWeather)
+        val rawPaths = pathFinder.findTop3Paths(nodes, edges, startId, endId, isSevereWeather)
 
-        if (paths.isEmpty()) {
+        if (rawPaths.isEmpty()) {
             Toast.makeText(this, "No route found.", Toast.LENGTH_SHORT).show()
             layoutRouteSelection.visibility = View.GONE
             return
         }
+
+        val paths = rawPaths
 
         // Draw all paths on map
         paths.forEachIndexed { index, path ->

@@ -20,4 +20,42 @@
         android:textColor="@android:color/white"
         android:textSize="14sp" />
 
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_margin="16dp"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <ImageView
+            android:id="@+id/compassImage"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:src="@drawable/ic_compass_needle"
+            android:background="@drawable/compass_bg"
+            android:padding="8dp"/>
+
+        <TextView
+            android:id="@+id/compassText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@android:color/white"
+            android:background="#AA000000"
+            android:paddingHorizontal="4dp"
+            android:text="0° N"
+            android:layout_marginTop="4dp"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btnRecenter"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="32dp"
+        android:text="Recenter"
+        android:visibility="gone" />
+
 </FrameLayout>

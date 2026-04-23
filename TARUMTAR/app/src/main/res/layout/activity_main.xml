@@ -205,7 +205,7 @@
                             android:layout_height="60dp"
                             android:layout_alignParentStart="true"
                             android:layout_alignParentTop="true"
-                            android:src="@android:drawable/ic_menu_share"
+                            android:src="@android:drawable/ic_menu_agenda"
                             app:tint="@android:color/black" />
 
                         <TextView
@@ -213,7 +213,7 @@
                             android:layout_height="wrap_content"
                             android:layout_alignParentStart="true"
                             android:layout_alignParentBottom="true"
-                            android:text="Shop"
+                            android:text="Pet Shop"
                             android:textColor="@android:color/white"
                             android:textStyle="bold" />
                     </RelativeLayout>

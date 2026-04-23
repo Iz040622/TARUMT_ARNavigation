@@ -27,6 +27,16 @@ import kotlin.math.sin
 import kotlin.random.Random
 import kotlin.math.abs
 import android.view.View
+import android.app.Dialog
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
+import android.view.ViewGroup
+import android.view.Window
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.FrameLayout
+import com.google.ar.sceneform.SceneView
+
 class petARActivity : AppCompatActivity() {
 
     private lateinit var arFragment: ArFragment
@@ -49,6 +59,7 @@ class petARActivity : AppCompatActivity() {
     private var bowlNode: Node? = null
 
     private var petAnchorNode: AnchorNode? = null
+    private val dialogSceneViews = mutableListOf<SceneView>()
 
     private lateinit var fabItems: com.google.android.material.floatingactionbutton.FloatingActionButton
     private lateinit var itemMenu: android.widget.LinearLayout
@@ -60,6 +71,7 @@ class petARActivity : AppCompatActivity() {
 
     private var isItemMenuOpen = false
     private lateinit var fabChangePet: com.google.android.material.floatingactionbutton.FloatingActionButton
+    private lateinit var pointManager: PointManager
     private enum class PetReaction {
         HAPPY_HOP,
         PLAYFUL_TWIST,
@@ -68,13 +80,14 @@ class petARActivity : AppCompatActivity() {
     }
 
     private enum class PetType(
+        val id: String,
         val displayName: String,
         val assetPath: String,
         val scale: Float,
         val unlockCost: Int
     ) {
-        SHIBA("Shiba Inu", "miniPets/ShibaInu.glb", 0.15f, 0),
-        CAT("Husky", "miniPets/Husky.glb", 0.15f, 100),
+        SHIBA(PointManager.PET_SHIBA, "Shiba Inu", "miniPets/ShibaInu.glb", 0.15f, 0),
+        HUSKY(PointManager.PET_HUSKY, "Husky", "miniPets/Husky.glb", 0.15f, 100),
     }
 
     companion object {
@@ -125,6 +138,8 @@ class petARActivity : AppCompatActivity() {
         loadItemModels()
         setupItemMenu()
         setupChangePetButton()
+        
+        pointManager = PointManager(this)
     }
 
     private fun loadPetModels() {
@@ -733,16 +748,81 @@ class petARActivity : AppCompatActivity() {
     }
 
     private fun showPetSelectionDialog() {
-        val petTypes = PetType.values()
-        val petNames = petTypes.map { it.displayName }.toTypedArray()
+        for (sv in dialogSceneViews) {
+            sv.pause()
+            sv.destroy()
+        }
+        dialogSceneViews.clear()
 
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("Choose Pet")
-            .setItems(petNames) { _, which ->
-                val selectedPet = petTypes[which]
-                changePet(selectedPet)
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.setContentView(R.layout.dialog_pet_selection)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+
+        val container = dialog.findViewById<LinearLayout>(R.id.containerPets)
+        val btnCancel = dialog.findViewById<TextView>(R.id.btnCancel)
+        
+        btnCancel.setOnClickListener { dialog.dismiss() }
+
+        val petTypes = PetType.values()
+        for (type in petTypes) {
+            val itemView = layoutInflater.inflate(R.layout.item_pet_selection, container, false)
+            val txtName = itemView.findViewById<TextView>(R.id.txtPetName)
+            val imgLock = itemView.findViewById<ImageView>(R.id.imgLockStatus)
+            val previewContainer = itemView.findViewById<FrameLayout>(R.id.containerSceneView)
+            
+            val isUnlocked = pointManager.isPetUnlocked(type.id)
+            txtName.text = if (isUnlocked) type.displayName else "${type.displayName} (Locked)"
+            imgLock.visibility = if (isUnlocked) View.GONE else View.VISIBLE
+            
+            // Add 3D Preview
+            val sceneView = SceneView(this)
+            dialogSceneViews.add(sceneView)
+            previewContainer.addView(sceneView)
+            
+            ModelRenderable.builder()
+                .setSource(this, Uri.parse(type.assetPath))
+                .setIsFilamentGltf(true)
+                .build()
+                .thenAccept { renderable ->
+                    val node = Node().apply {
+                        setParent(sceneView.scene)
+                        this.renderable = renderable
+                        val scale = type.scale * 1.5f
+                        localScale = Vector3(scale, scale, scale)
+                        localPosition = Vector3(0f, -0.2f, -0.5f)
+                        localRotation = Quaternion.axisAngle(Vector3(0f, 1f, 0f), 180f)
+                    }
+                    sceneView.scene.addOnUpdateListener {
+                        val currentRot = node.localRotation
+                        val deltaRot = Quaternion.axisAngle(Vector3(0f, 1f, 0f), 0.8f)
+                        node.localRotation = Quaternion.multiply(currentRot, deltaRot)
+                    }
+                }
+
+            itemView.setOnClickListener {
+                if (isUnlocked) {
+                    changePet(type)
+                    dialog.dismiss()
+                } else {
+                    Toast.makeText(this, "You need to unlock this pet in the Shop first!", Toast.LENGTH_SHORT).show()
+                }
             }
-            .show()
+            
+            container.addView(itemView)
+        }
+
+        dialog.setOnDismissListener {
+            for (sv in dialogSceneViews) {
+                sv.pause()
+                sv.destroy()
+            }
+            dialogSceneViews.clear()
+        }
+
+        dialog.show()
+        for (sv in dialogSceneViews) sv.resume()
     }
 
     private fun changePet(newPetType: PetType) {

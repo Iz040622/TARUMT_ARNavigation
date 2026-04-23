@@ -6,13 +6,23 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.net.Uri
 import android.os.Bundle
+import android.view.View
+import android.widget.Button
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import android.os.Looper
+import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.tarumtar.R
+import com.example.tarumtar.petModule.PointManager
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.model.LatLng
 import com.google.ar.core.ArCoreApk
 import com.google.ar.core.HitResult
@@ -21,9 +31,15 @@ import com.google.ar.core.TrackingState
 import com.google.ar.sceneform.AnchorNode
 import com.google.ar.sceneform.Node
 import com.google.ar.sceneform.math.Quaternion
+import android.animation.ValueAnimator
+import android.view.animation.AccelerateDecelerateInterpolator
 import com.google.ar.sceneform.math.Vector3
 import com.google.ar.sceneform.rendering.ModelRenderable
 import com.google.ar.sceneform.ux.ArFragment
+import com.google.ar.core.Config
+import com.google.ar.sceneform.rendering.Light
+import com.google.ar.sceneform.rendering.Color as ArColor
+import com.example.tarumtar.ui.MainActivity
 import kotlin.math.max
 import kotlin.math.min
 
@@ -43,14 +59,16 @@ class ARNavigationActivity : AppCompatActivity() {
 
         private const val AUTO_PLACE_Y_RATIO = 0.72f
         private const val STABLE_FLOOR_FRAMES_REQUIRED = 8
-
-        // user must be within this distance from selected start node
-        private const val START_RADIUS_METERS = 12f
+        private const val PET_MODEL_YAW_OFFSET = 180f
     }
 
     private lateinit var arFragment: ArFragment
     private lateinit var instrText: TextView
+    private lateinit var btnRecenter: Button
+    private lateinit var compassImage: ImageView
+    private lateinit var compassText: TextView
     private lateinit var headingHelper: headingHelper
+    private var locationCallback: LocationCallback? = null
 
     private val headingSamples = ArrayDeque<Float>()
     private var lockedHeadingDegrees = 0f
@@ -63,13 +81,26 @@ class ARNavigationActivity : AppCompatActivity() {
     private var currentLatLng: LatLng? = null
 
     private var routePlaced = false
+    private var isRecentering = false
+    private var currentNearestArrowIndex = 0
     private var lastRefreshTime = 0L
     private var stableFloorFrames = 0
 
     private var rootAnchorNode: AnchorNode? = null
+    private var pathContainer: Node? = null
     private var arrowRenderable: ModelRenderable? = null
+    private var destinationRenderable: ModelRenderable? = null
 
     private val visibleArrowNodes = mutableMapOf<Int, Node>()
+
+    private lateinit var pointManager: PointManager
+    private var lastPointLatLng: LatLng? = null
+    private var totalDistanceWalked = 0f
+
+    private var petNode: Node? = null
+    private var petRenderable: ModelRenderable? = null
+    private var isArrivalTriggered = false
+    private var isPetReacting = false
 
     data class RouteArrowPoint(
         val localPosition: Vector3,
@@ -83,7 +114,20 @@ class ARNavigationActivity : AppCompatActivity() {
         supportActionBar?.hide()
 
         instrText = findViewById(R.id.instrText)
+        btnRecenter = findViewById(R.id.btnRecenter)
+        compassImage = findViewById(R.id.compassImage)
+        compassText = findViewById(R.id.compassText)
+
+        btnRecenter.setOnClickListener {
+            resetRoute()
+        }
+
         arFragment = supportFragmentManager.findFragmentById(R.id.arFragment) as ArFragment
+
+        arFragment.setOnSessionConfigurationListener { _, config ->
+            config.lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
+            config.focusMode = Config.FocusMode.AUTO
+        }
 
         if (!isArSupported()) {
             Toast.makeText(this, "This device does not support ARCore.", Toast.LENGTH_LONG).show()
@@ -107,18 +151,22 @@ class ARNavigationActivity : AppCompatActivity() {
         requestPermissionsIfNeeded()
         setupSceneUpdate()
 
+        pointManager = PointManager(this)
+        loadPetModel()
+
         instrText.text = "Checking your location..."
     }
 
     override fun onResume() {
         super.onResume()
         headingHelper.start()
-        fetchLastLocation()
+        startLocationUpdates()
     }
 
     override fun onPause() {
         super.onPause()
         headingHelper.stop()
+        stopLocationUpdates()
     }
 
     private fun isArSupported(): Boolean {
@@ -161,6 +209,38 @@ class ARNavigationActivity : AppCompatActivity() {
                 ).show()
                 null
             }
+
+        ModelRenderable.builder()
+            .setSource(this, Uri.parse("models/destination.glb"))
+            .setIsFilamentGltf(true)
+            .build()
+            .thenAccept { renderable ->
+                destinationRenderable = renderable
+            }
+            .exceptionally { error ->
+                Toast.makeText(
+                    this,
+                    "Failed to load destination.glb: ${error.message}",
+                    Toast.LENGTH_LONG
+                ).show()
+                null
+            }
+    }
+
+    private fun loadPetModel() {
+        val selectedPet = pointManager.getSelectedPet()
+        val assetPath = PointManager.PET_ASSETS[selectedPet] ?: return
+
+        ModelRenderable.builder()
+            .setSource(this, Uri.parse(assetPath))
+            .setIsFilamentGltf(true)
+            .build()
+            .thenAccept { renderable ->
+                petRenderable = renderable
+            }
+            .exceptionally {
+                null
+            }
     }
 
     private fun requestPermissionsIfNeeded() {
@@ -191,12 +271,12 @@ class ARNavigationActivity : AppCompatActivity() {
                 PERMISSION_REQUEST_CODE
             )
         } else {
-            fetchLastLocation()
+            startLocationUpdates()
         }
     }
 
     @SuppressLint("MissingPermission")
-    private fun fetchLastLocation() {
+    private fun startLocationUpdates() {
         val hasFine = ContextCompat.checkSelfPermission(
             this,
             Manifest.permission.ACCESS_FINE_LOCATION
@@ -209,13 +289,44 @@ class ARNavigationActivity : AppCompatActivity() {
 
         if (!hasFine && !hasCoarse) return
 
-        LocationServices.getFusedLocationProviderClient(this)
-            .lastLocation
-            .addOnSuccessListener { location: Location? ->
-                if (location != null) {
-                    currentLatLng = LatLng(location.latitude, location.longitude)
+        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 2000L)
+            .setMinUpdateIntervalMillis(1000L)
+            .build()
+
+        locationCallback = object : LocationCallback() {
+            override fun onLocationResult(locationResult: LocationResult) {
+                for (location in locationResult.locations) {
+                    val newLatLng = LatLng(location.latitude, location.longitude)
+
+                    if (lastPointLatLng != null && location.accuracy < 15f) {
+                        val dist = distanceMeters(lastPointLatLng!!, newLatLng)
+                        // Filter out small GPS jumps/noise by requiring at least 2m of movement
+                        if (dist > 2f) {
+                            totalDistanceWalked += dist
+                            if (totalDistanceWalked >= 1f) {
+                                val pointsEarned = totalDistanceWalked.toInt()
+                                pointManager.addPoints(pointsEarned)
+                                totalDistanceWalked -= pointsEarned
+                            }
+                            // Only update baseline when we've actually moved significantly
+                            lastPointLatLng = newLatLng
+                        }
+                    } else if (lastPointLatLng == null) {
+                        lastPointLatLng = newLatLng
+                    }
+                    currentLatLng = newLatLng
                 }
             }
+        }
+
+        LocationServices.getFusedLocationProviderClient(this)
+            .requestLocationUpdates(locationRequest, locationCallback!!, Looper.getMainLooper())
+    }
+
+    private fun stopLocationUpdates() {
+        locationCallback?.let {
+            LocationServices.getFusedLocationProviderClient(this).removeLocationUpdates(it)
+        }
     }
 
     private fun setupSceneUpdate() {
@@ -223,11 +334,6 @@ class ARNavigationActivity : AppCompatActivity() {
             val now = System.currentTimeMillis()
 
             if (!routePlaced) {
-                if (now - lastRefreshTime >= 1000L) {
-                    lastRefreshTime = now
-                    fetchLastLocation()
-                }
-
                 tryAutoPlaceRoute()
                 return@addOnUpdateListener
             }
@@ -237,6 +343,137 @@ class ARNavigationActivity : AppCompatActivity() {
 
             lastRefreshTime = now
             refreshVisibleArrows(force = false)
+
+            if (petNode != null) {
+                updatePetWaiting()
+            } else if (routePlaced && petRenderable != null) {
+                spawnPet()
+            }
+        }
+    }
+
+    private fun spawnPet() {
+        val root = pathContainer ?: return
+        val renderable = petRenderable ?: return
+        if (arrowPoints.isEmpty()) return
+
+        // Destination is the last point in the arrow sequence
+        val destinationPoint = arrowPoints.last()
+
+        petNode = Node().apply {
+            setParent(root)
+            this.renderable = renderable
+            val selectedPet = pointManager.getSelectedPet()
+            val scale = PointManager.PET_SCALES[selectedPet] ?: 0.15f
+            localScale = Vector3(scale, scale, scale)
+
+            // Set position to destination
+            localPosition = destinationPoint.localPosition
+            // Lift slightly to avoid z-fighting with the destination marker
+            localPosition = Vector3(localPosition.x, localPosition.y + 0.01f, localPosition.z)
+            
+            // Set initial rotation
+            localRotation = destinationPoint.localRotation
+
+            // Add a point light slightly above the pet to make it brighter
+            val petParent = this
+            Node().apply {
+                setParent(petParent)
+                localPosition = Vector3(0f, 0.5f, 0f)
+                light = Light.builder(Light.Type.POINT)
+                    .setColor(ArColor(1f, 1f, 1f))
+                    .setIntensity(2000f)
+                    .setFalloffRadius(2.0f)
+                    .build()
+            }
+        }
+        
+        startWaitingAnimation()
+    }
+
+    private fun startWaitingAnimation() {
+        val pet = petNode ?: return
+        val basePos = pet.localPosition
+        
+        val animator = ValueAnimator.ofFloat(0f, 0.04f, 0f).apply {
+            duration = 2000
+            repeatCount = ValueAnimator.INFINITE
+            interpolator = AccelerateDecelerateInterpolator()
+            addUpdateListener { anim ->
+                val offset = anim.animatedValue as Float
+                pet.localPosition = Vector3(basePos.x, basePos.y + offset, basePos.z)
+            }
+        }
+        animator.start()
+    }
+
+    private fun updatePetWaiting() {
+        val pet = petNode ?: return
+        if (isPetReacting) return
+
+        val camera = arFragment.arSceneView.scene.camera
+        val cameraPos = camera.worldPosition
+        
+        val petPos = pet.worldPosition
+        val diff = Vector3.subtract(cameraPos, petPos)
+        diff.y = 0f
+        
+        val distance = diff.length()
+
+        // Check for arrival
+        if (distance < 1.5f && !isArrivalTriggered) {
+            triggerArrival()
+        }
+
+        if (distance > 0.1f) {
+            val direction = diff.normalized()
+            val lookRotation = Quaternion.lookRotation(direction, Vector3.up())
+            val correction = Quaternion.axisAngle(Vector3(0f, 1f, 0f), PET_MODEL_YAW_OFFSET)
+            // Smoothly rotate to face user with correction
+            pet.worldRotation = Quaternion.slerp(pet.worldRotation, Quaternion.multiply(lookRotation, correction), 0.05f)
+        }
+    }
+
+    private fun triggerArrival() {
+        isArrivalTriggered = true
+        isPetReacting = true
+        
+        playHappyAnimation {
+            Toast.makeText(this, "You have arrived at your destination!", Toast.LENGTH_LONG).show()
+            instrText.postDelayed({
+                val intent = Intent(this, MainActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                startActivity(intent)
+                finish()
+            }, 3000)
+        }
+    }
+
+    private fun playHappyAnimation(onEnd: () -> Unit) {
+        val pet = petNode ?: return
+        val basePos = pet.worldPosition
+        val baseRot = pet.worldRotation
+
+        ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 2000
+            addUpdateListener { anim ->
+                val t = anim.animatedValue as Float
+                // Bobbing and spinning
+                val bob = kotlin.math.abs(kotlin.math.sin(t * kotlin.math.PI * 4)).toFloat() * 0.15f
+                val spin = t * 360f * 2
+                
+                pet.worldPosition = Vector3(basePos.x, basePos.y + bob, basePos.z)
+                val spinRot = Quaternion.axisAngle(Vector3(0f, 1f, 0f), spin)
+                pet.worldRotation = Quaternion.multiply(baseRot, spinRot)
+            }
+            addListener(object : android.animation.AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: android.animation.Animator) {
+                    pet.worldPosition = basePos
+                    pet.worldRotation = baseRot
+                    onEnd()
+                }
+            })
+            start()
         }
     }
 
@@ -258,14 +495,6 @@ class ARNavigationActivity : AppCompatActivity() {
         }
 
         val distanceToStart = distanceMeters(current, start)
-
-        if (distanceToStart > START_RADIUS_METERS) {
-            stableFloorFrames = 0
-            val blockName = if (startNodeId.isNotBlank()) startNodeId else "start point"
-            instrText.text =
-                "Go to $blockName first.\nDistance to start: ${distanceToStart.toInt()} m"
-            return
-        }
 
         val sceneView = arFragment.arSceneView
         val frame = sceneView.arFrame ?: return
@@ -305,15 +534,28 @@ class ARNavigationActivity : AppCompatActivity() {
     private fun autoPlaceRoute(hitResult: HitResult) {
         if (routePlaced) return
 
-        lockedHeadingDegrees = getAverageHeading()
-
-        val referenceLatLng = routeGeoPoints.first()
-
         rootAnchorNode = AnchorNode(hitResult.createAnchor()).apply {
             setParent(arFragment.arSceneView.scene)
         }
+        
+        pathContainer = Node().apply {
+            setParent(rootAnchorNode)
+            worldRotation = Quaternion.identity()
+        }
 
-        buildArrowPath(referenceLatLng, lockedHeadingDegrees)
+        if (isRecentering && arrowPoints.isNotEmpty()) {
+            val offset = arrowPoints[0].localPosition
+            for (index in arrowPoints.indices) {
+                arrowPoints[index] = arrowPoints[index].copy(
+                    localPosition = Vector3.subtract(arrowPoints[index].localPosition, offset)
+                )
+            }
+            isRecentering = false
+        } else {
+            lockedHeadingDegrees = getAverageHeading()
+            val referenceLatLng = routeGeoPoints.first()
+            buildArrowPath(referenceLatLng, lockedHeadingDegrees)
+        }
 
         if (arrowPoints.isEmpty()) {
             Toast.makeText(this, "Failed to build route.", Toast.LENGTH_SHORT).show()
@@ -322,7 +564,35 @@ class ARNavigationActivity : AppCompatActivity() {
 
         routePlaced = true
         instrText.text = "Route placed."
+        btnRecenter.visibility = View.VISIBLE
         refreshVisibleArrows(force = true)
+    }
+
+    private fun resetRoute() {
+        if (!routePlaced || arrowPoints.isEmpty()) return
+
+        if (currentNearestArrowIndex > 0 && currentNearestArrowIndex < arrowPoints.size) {
+            val toRemove = arrowPoints.subList(0, currentNearestArrowIndex).toList()
+            arrowPoints.removeAll(toRemove)
+            currentNearestArrowIndex = 0
+        }
+
+        isRecentering = true
+        routePlaced = false
+
+        visibleArrowNodes.values.forEach { it.setParent(null) }
+        visibleArrowNodes.clear()
+
+        pathContainer?.setParent(null)
+        pathContainer = null
+
+        rootAnchorNode?.anchor?.detach()
+        rootAnchorNode?.setParent(null)
+        rootAnchorNode = null
+
+        stableFloorFrames = 0
+        instrText.text = "Recentering... look at the floor."
+        btnRecenter.visibility = View.GONE
     }
 
     private fun buildArrowPath(referenceLatLng: LatLng, headingDegrees: Float) {
@@ -400,7 +670,7 @@ class ARNavigationActivity : AppCompatActivity() {
     }
 
     private fun refreshVisibleArrows(force: Boolean) {
-        val root = rootAnchorNode ?: return
+        val root = pathContainer ?: return
         if (arrowPoints.isEmpty()) return
 
         val cameraWorldPos = arFragment.arSceneView.scene.camera.worldPosition
@@ -417,9 +687,16 @@ class ARNavigationActivity : AppCompatActivity() {
             }
         }
 
+        currentNearestArrowIndex = nearestIndex
+
         val start = max(0, nearestIndex - VISIBLE_BEHIND_COUNT)
         val end = min(arrowPoints.lastIndex, nearestIndex + VISIBLE_AHEAD_COUNT)
-        val targetIndices = (start..end).toSet()
+        val targetIndices = (start..end).toMutableSet()
+        
+        // Always render the final destination marker so the user knows where they are heading!
+        if (arrowPoints.isNotEmpty()) {
+            targetIndices.add(arrowPoints.lastIndex)
+        }
 
         for (i in targetIndices) {
             if (!visibleArrowNodes.containsKey(i) || force) {
@@ -439,16 +716,27 @@ class ARNavigationActivity : AppCompatActivity() {
     }
 
     private fun addArrowNode(index: Int) {
-        val root = rootAnchorNode ?: return
-        val renderable = arrowRenderable ?: return
+        val root = pathContainer ?: return
         val point = arrowPoints[index]
+
+        val isDestination = (index == arrowPoints.lastIndex)
+        val renderableToUse = if (isDestination) destinationRenderable else arrowRenderable
+
+        if (renderableToUse == null) return
 
         val arrowNode = Node().apply {
             setParent(root)
-            this.renderable = renderable
+            this.renderable = renderableToUse
             localPosition = point.localPosition
-            localRotation = point.localRotation
-            localScale = Vector3(0.4f, 0.4f, 0.4f)
+            
+            if (isDestination) {
+                localScale = Vector3(1.5f, 1.5f, 1.5f)
+                val extraRotation = Quaternion.axisAngle(Vector3(0f, 1f, 0f), 90f)
+                localRotation = Quaternion.multiply(point.localRotation, extraRotation)
+            } else {
+                localScale = Vector3(0.4f, 0.4f, 0.4f)
+                localRotation = point.localRotation
+            }
         }
 
         visibleArrowNodes[index] = arrowNode
@@ -458,7 +746,23 @@ class ARNavigationActivity : AppCompatActivity() {
         if (headingSamples.size >= 15) {
             headingSamples.removeFirst()
         }
-        headingSamples.addLast(normalizeAngle(heading))
+        val normalized = normalizeAngle(heading)
+        headingSamples.addLast(normalized)
+
+        compassImage.rotation = -normalized
+
+        val compassDir = when (normalized) {
+            in 337.5..360.0, in 0.0..22.5 -> "N"
+            in 22.5..67.5 -> "NE"
+            in 67.5..112.5 -> "E"
+            in 112.5..157.5 -> "SE"
+            in 157.5..202.5 -> "S"
+            in 202.5..247.5 -> "SW"
+            in 247.5..292.5 -> "W"
+            in 292.5..337.5 -> "NW"
+            else -> ""
+        }
+        compassText.text = "${normalized.toInt()}° $compassDir"
     }
 
     private fun getAverageHeading(): Float {
@@ -515,7 +819,7 @@ class ARNavigationActivity : AppCompatActivity() {
         if (requestCode == PERMISSION_REQUEST_CODE) {
             val granted = grantResults.all { it == PackageManager.PERMISSION_GRANTED }
             if (granted) {
-                fetchLastLocation()
+                startLocationUpdates()
             } else {
                 Toast.makeText(
                     this,

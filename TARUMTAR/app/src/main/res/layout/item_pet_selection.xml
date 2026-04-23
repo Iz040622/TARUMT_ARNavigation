@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="12dp"
+    android:gravity="center_vertical"
+    android:background="?attr/selectableItemBackground">
+
+    <FrameLayout
+        android:id="@+id/containerSceneView"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:background="#20FFFFFF">
+        <!-- SceneView will be added here programmatically -->
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/txtPetName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="12dp"
+        android:text="Shiba Inu"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <ImageView
+        android:id="@+id/imgLockStatus"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:src="@android:drawable/ic_lock_lock"
+        android:alpha="0.6"
+        android:visibility="gone"/>
+
+</LinearLayout>

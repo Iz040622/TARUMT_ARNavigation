@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="20dp"
+    android:background="@drawable/ar_info_card_bg"
+    android:orientation="horizontal"
+    android:padding="16dp"
+    android:gravity="center_vertical">
+
+    <FrameLayout
+        android:id="@+id/containerSceneView"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:background="#20FFFFFF">
+        <!-- SceneView will be added here programmatically for 3D preview -->
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginStart="16dp">
+
+        <TextView
+            android:id="@+id/txtPetName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Shiba Inu"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"/>
+
+        <TextView
+            android:id="@+id/txtPetCost"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cost: 100 points"
+            android:textSize="14sp"
+            android:textColor="#BBBBBB"
+            android:layout_marginTop="4dp"/>
+    </LinearLayout>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnAction"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Unlock"
+        android:textAllCaps="true"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"
+        app:backgroundTint="#E30613"
+        app:cornerRadius="8dp"/>
+
+</LinearLayout>

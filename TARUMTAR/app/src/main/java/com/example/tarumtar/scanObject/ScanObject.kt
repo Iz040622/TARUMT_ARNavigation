@@ -81,7 +81,7 @@ class ScanObject : AppCompatActivity() {
             if (augmentedImage.trackingState == TrackingState.TRACKING && !isRendered) {
                 isRendered = true
 
-                Toast.makeText(this, "DETECTED: ${augmentedImage.name}", Toast.LENGTH_SHORT).show()
+                findViewById<TextView>(R.id.txtStatus)?.text = "Object Found: ${augmentedImage.name}"
                 Log.d(TAG, "TRACKING FOUND: ${augmentedImage.name}")
 
                 ViewRenderable.builder()
@@ -153,7 +153,7 @@ class ScanObject : AppCompatActivity() {
         val db = AugmentedImageDatabase(s)
 
         // Add as many images as you want (name must be unique)
-        addImageToDb(db, "blockB", "blockB.png")
+        addImageToDb(db, "blockB", "BuildingImange/blockB.png")
         config.augmentedImageDatabase = db
         return true
     }

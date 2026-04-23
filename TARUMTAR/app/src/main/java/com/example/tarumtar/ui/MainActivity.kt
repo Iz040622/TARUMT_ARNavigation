@@ -8,9 +8,7 @@ import com.example.tarumtar.databinding.ActivityMainBinding
 import com.example.tarumtar.navigation.routeSelectionActivity
 import com.example.tarumtar.scanObject.ScanObject
 import com.example.tarumtar.petModule.petARActivity
-import kotlin.jvm.java
-
-
+import com.example.tarumtar.petModule.ShopActivity
 class MainActivity : AppCompatActivity() {
 
 
@@ -80,7 +78,8 @@ class MainActivity : AppCompatActivity() {
 
 
         binding.cardShop.setOnClickListener {
-// TODO: Shop
+            val intent = Intent(this, ShopActivity::class.java)
+            startActivity(intent)
         }
     }
 }
