@@ -789,9 +789,9 @@ class petARActivity : AppCompatActivity() {
                     val node = Node().apply {
                         setParent(sceneView.scene)
                         this.renderable = renderable
-                        val scale = type.scale * 1.5f
+                        val scale = type.scale * 0.5f
                         localScale = Vector3(scale, scale, scale)
-                        localPosition = Vector3(0f, -0.2f, -0.5f)
+                        localPosition = Vector3(0f, -0.1f, -0.4f)
                         localRotation = Quaternion.axisAngle(Vector3(0f, 1f, 0f), 180f)
                     }
                     sceneView.scene.addOnUpdateListener {

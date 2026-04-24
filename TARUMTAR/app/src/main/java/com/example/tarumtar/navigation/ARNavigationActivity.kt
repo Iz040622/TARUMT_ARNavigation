@@ -49,13 +49,12 @@ class ARNavigationActivity : AppCompatActivity() {
         private const val PERMISSION_REQUEST_CODE = 2001
 
         private const val POSITION_DETECT_DELAY_MS = 100L
-        private const val VISIBLE_AHEAD_COUNT = 6
-
-        private const val VISIBLE_BEHIND_COUNT = 1
+        private const val VISIBLE_AHEAD_COUNT = 15
+        private const val VISIBLE_BEHIND_COUNT = 2
 
         private const val ARROW_SPACING_METERS = 1.2f
         private const val MODEL_YAW_OFFSET_DEG = 90f
-        private const val ROUTE_Y_LIFT = 0.03f
+        private const val ROUTE_Y_LIFT = 0.08f
 
         private const val AUTO_PLACE_Y_RATIO = 0.72f
         private const val STABLE_FLOOR_FRAMES_REQUIRED = 8
@@ -109,6 +108,9 @@ class ARNavigationActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        requestPermissionsIfNeeded()
+
         setContentView(R.layout.activity_ar_navigation)
 
         supportActionBar?.hide()
@@ -148,7 +150,6 @@ class ARNavigationActivity : AppCompatActivity() {
         }
 
         loadArrowModel()
-        requestPermissionsIfNeeded()
         setupSceneUpdate()
 
         pointManager = PointManager(this)
@@ -340,6 +341,18 @@ class ARNavigationActivity : AppCompatActivity() {
 
             if (rootAnchorNode == null || arrowPoints.isEmpty()) return@addOnUpdateListener
             if (now - lastRefreshTime < POSITION_DETECT_DELAY_MS) return@addOnUpdateListener
+
+            val frame = arFragment.arSceneView.arFrame
+            if (frame?.camera?.trackingState != TrackingState.TRACKING) {
+                if (routePlaced) {
+                    instrText.text = "Tracking lost. Move phone slowly to recover..."
+                }
+                return@addOnUpdateListener
+            }
+
+            if (routePlaced) {
+                instrText.text = "Navigation Active"
+            }
 
             lastRefreshTime = now
             refreshVisibleArrows(force = false)

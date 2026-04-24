@@ -81,9 +81,9 @@ class ShopActivity : AppCompatActivity() {
                     val node = Node().apply {
                         setParent(sceneView.scene)
                         this.renderable = renderable
-                        val scale = (PointManager.PET_SCALES[petId] ?: 0.15f) * 1.5f
+                        val scale = (PointManager.PET_SCALES[petId] ?: 0.15f) * 0.65f
                         localScale = Vector3(scale, scale, scale)
-                        localPosition = Vector3(0f, -0.25f, -0.6f)
+                        localPosition = Vector3(0f, -0.15f, -0.5f)
                         
                         // Facing forward
                         localRotation = Quaternion.axisAngle(Vector3(0f, 1f, 0f), 180f)
