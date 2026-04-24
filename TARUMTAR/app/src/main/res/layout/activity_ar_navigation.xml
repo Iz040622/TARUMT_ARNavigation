@@ -3,12 +3,14 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <!-- AR Camera View -->
     <fragment
         android:id="@+id/arFragment"
         android:name="com.google.ar.sceneform.ux.ArFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <!-- Top-left: Status Text -->
     <TextView
         android:id="@+id/instrText"
         android:layout_width="wrap_content"
@@ -18,8 +20,10 @@
         android:padding="12dp"
         android:text="Move camera to floor and tap once"
         android:textColor="@android:color/white"
-        android:textSize="14sp" />
+        android:textSize="14sp"
+        android:maxWidth="220dp" />
 
+    <!-- Top-right: Compass + Language Buttons stacked vertically -->
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -28,6 +32,7 @@
         android:orientation="vertical"
         android:gravity="center">
 
+        <!-- Compass -->
         <ImageView
             android:id="@+id/compassImage"
             android:layout_width="60dp"
@@ -47,8 +52,86 @@
             android:layout_marginTop="4dp"
             android:textSize="12sp"
             android:textStyle="bold" />
+
+        <!-- Language Selector -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:background="#CC000000"
+            android:padding="4dp"
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <Button
+                android:id="@+id/btnLangEn"
+                android:layout_width="44dp"
+                android:layout_height="36dp"
+                android:text="EN"
+                android:textSize="11sp"
+                android:textColor="@android:color/white"
+                android:backgroundTint="#1E88E5"
+                android:padding="2dp"
+                android:layout_marginEnd="3dp" />
+
+            <Button
+                android:id="@+id/btnLangZh"
+                android:layout_width="44dp"
+                android:layout_height="36dp"
+                android:text="中"
+                android:textSize="11sp"
+                android:textColor="@android:color/white"
+                android:backgroundTint="#444444"
+                android:padding="2dp"
+                android:layout_marginEnd="3dp" />
+
+            <Button
+                android:id="@+id/btnLangMs"
+                android:layout_width="44dp"
+                android:layout_height="36dp"
+                android:text="BM"
+                android:textSize="11sp"
+                android:textColor="@android:color/white"
+                android:backgroundTint="#444444"
+                android:padding="2dp" />
+
+        </LinearLayout>
     </LinearLayout>
 
+    <!-- Bottom-Center: Direction HUD Card (above recenter) -->
+    <LinearLayout
+        android:id="@+id/layoutNavHud"
+        android:layout_width="220dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="90dp"
+        android:background="#CC000000"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="12dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/navDirectionIcon"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_nav_straight"
+            android:scaleType="fitCenter"
+            android:layout_marginEnd="12dp" />
+
+        <TextView
+            android:id="@+id/navDirectionText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Go Straight"
+            android:textColor="@android:color/white"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:maxLines="2" />
+
+    </LinearLayout>
+
+    <!-- Bottom-Center: Recenter Button -->
     <Button
         android:id="@+id/btnRecenter"
         android:layout_width="wrap_content"

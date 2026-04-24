@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+
+    <!--
+        Turn-LEFT arrow:
+        Shaft rises from bottom-right area, curves left, arrowhead points LEFT.
+
+        Trick: use android:fillColor="#00000000" (transparent hex) on stroke paths.
+        "@android:color/transparent" does NOT work in <vector> and causes black fill blobs.
+    -->
+
+    <!-- Curved shaft: starts at bottom (x=30), rises, then curves left to (x=12) -->
+    <path
+        android:pathData="M30,44 L30,26 Q30,14 18,14 L12,14"
+        android:strokeWidth="7"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+
+    <!-- Arrowhead pointing LEFT  (tip at x=4, base from y=6 to y=22) -->
+    <path
+        android:pathData="M18,6 L4,14 L18,22 Z"
+        android:fillColor="#FFFFFF" />
+
+</vector>

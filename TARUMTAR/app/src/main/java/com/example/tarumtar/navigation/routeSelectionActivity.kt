@@ -55,12 +55,20 @@ class routeSelectionActivity : AppCompatActivity() {
     private var selectedRouteIndex: Int = 0
     private var latestPath: List<Node> = emptyList()
 
+    // Language selection — default English
+    private var selectedLanguage: String = "EN"
+
     // Route button references
     private lateinit var layoutRouteSelection: LinearLayout
     private lateinit var btnPath1: Button
     private lateinit var btnPath2: Button
     private lateinit var btnPath3: Button
     private lateinit var btnStartAR: Button
+
+    // Language buttons
+    private lateinit var btnRouteLangEn: Button
+    private lateinit var btnRouteLangZh: Button
+    private lateinit var btnRouteLangMs: Button
 
     // Weather view references
     private lateinit var layoutWeather: LinearLayout
@@ -76,7 +84,7 @@ class routeSelectionActivity : AppCompatActivity() {
     private val httpClient = OkHttpClient()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val WEATHER_API_KEY = "016329090d10da4b9fd4082a3d2b0372"
-    
+
     // Store current severe weather status (rain or extreme heat)
     private var isSevereWeather = false
 
@@ -85,7 +93,6 @@ class routeSelectionActivity : AppCompatActivity() {
     // Walking speed ~1.4 m/s → ~84 m/min
     private fun distanceToMinutes(meters: Double): Int = ((meters / 84.0) + 0.5).toInt().coerceAtLeast(1)
 
-    // Calculate total distance for a path using haversine
     private fun calcPathDistance(path: List<Node>): Double {
         var total = 0.0
         for (i in 0 until path.size - 1) {
@@ -127,11 +134,21 @@ class routeSelectionActivity : AppCompatActivity() {
         tvWeatherDesc = findViewById(R.id.tvWeatherDesc)
         tvRainfall = findViewById(R.id.tvRainfall)
 
-        tvRainfall = findViewById(R.id.tvRainfall)
-
         etStart = findViewById(R.id.etStart)
         etEnd = findViewById(R.id.etEnd)
         val btnShow = findViewById<Button>(R.id.btnShowPaths)
+
+        // Bind language buttons
+        btnRouteLangEn = findViewById(R.id.btnRouteLangEn)
+        btnRouteLangZh = findViewById(R.id.btnRouteLangZh)
+        btnRouteLangMs = findViewById(R.id.btnRouteLangMs)
+
+        btnRouteLangEn.setOnClickListener { setRouteLanguage("EN") }
+        btnRouteLangZh.setOnClickListener { setRouteLanguage("ZH") }
+        btnRouteLangMs.setOnClickListener { setRouteLanguage("MS") }
+
+        // Default: EN selected
+        setRouteLanguage("EN")
 
         Toast.makeText(this, "Loading graph from Firebase...", Toast.LENGTH_SHORT).show()
 
@@ -149,9 +166,7 @@ class routeSelectionActivity : AppCompatActivity() {
                     val center = GeoPoint(nodes.first().lat, nodes.first().lng)
                     map.controller.setCenter(center)
 
-                    // Fetch Weather for this location
                     fetchWeatherData(nodes.first().lat, nodes.first().lng)
-
 
                     val visibleNodes = nodes.filter { it.visible }
                     val labels = visibleNodes.map { it.label() }
@@ -210,6 +225,7 @@ class routeSelectionActivity : AppCompatActivity() {
                         intent.putExtra("start_id", start.id)
                         intent.putExtra("start_lat", start.lat)
                         intent.putExtra("start_lng", start.lng)
+                        intent.putExtra("selected_language", selectedLanguage)
 
                         startActivity(intent)
                     }
@@ -225,24 +241,32 @@ class routeSelectionActivity : AppCompatActivity() {
         )
     }
 
+    // ---------------- LANGUAGE ----------------
+
+    private fun setRouteLanguage(lang: String) {
+        selectedLanguage = lang
+        val activeColor = Color.parseColor("#1E88E5")
+        val inactiveColor = Color.parseColor("#9E9E9E")
+
+        btnRouteLangEn.backgroundTintList = android.content.res.ColorStateList.valueOf(
+            if (lang == "EN") activeColor else inactiveColor
+        )
+        btnRouteLangZh.backgroundTintList = android.content.res.ColorStateList.valueOf(
+            if (lang == "ZH") activeColor else inactiveColor
+        )
+        btnRouteLangMs.backgroundTintList = android.content.res.ColorStateList.valueOf(
+            if (lang == "MS") activeColor else inactiveColor
+        )
+    }
+
     // ---------------- TITLE ----------------
 
     private fun setupTitle() {
         val txtTitle = findViewById<TextView>(R.id.txtTitle)
-        // "TAR UMT AR" — TAR=red, UMT=blue, AR=black
         val text = SpannableString("TAR UMT AR")
-        text.setSpan(
-            ForegroundColorSpan(Color.parseColor("#E30613")),
-            0, 3, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-        )
-        text.setSpan(
-            ForegroundColorSpan(Color.parseColor("#1E40FF")),
-            4, 7, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-        )
-        text.setSpan(
-            ForegroundColorSpan(Color.BLACK),
-            8, 10, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-        )
+        text.setSpan(ForegroundColorSpan(Color.parseColor("#E30613")), 0, 3, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        text.setSpan(ForegroundColorSpan(Color.parseColor("#1E40FF")), 4, 7, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        text.setSpan(ForegroundColorSpan(Color.BLACK), 8, 10, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         txtTitle.text = text
     }
 
@@ -266,8 +290,7 @@ class routeSelectionActivity : AppCompatActivity() {
                     val temp = mainObj.getDouble("temp")
                     val description = weatherArr.getJSONObject(0).getString("main")
                     val rainVolume = rainObj?.optDouble("1h", 0.0) ?: 0.0
-                    
-                    // Determine if it's severe weather (rain or extreme heat over 33C)
+
                     val isRaining = rainVolume > 0 || description.lowercase().contains("rain")
                     val isHot = temp > 33.0
                     isSevereWeather = isRaining || isHot
@@ -284,7 +307,6 @@ class routeSelectionActivity : AppCompatActivity() {
                     }
                 }
             } catch (e: Exception) {
-                // Fail silently or handle error log
                 e.printStackTrace()
             }
         }
@@ -299,13 +321,11 @@ class routeSelectionActivity : AppCompatActivity() {
 
     private fun placeStartMarker(n: Node) {
         startMarker?.let { map.overlays.remove(it) }
-
         startMarker = Marker(map).apply {
             position = GeoPoint(n.lat, n.lng)
             title = "START: ${n.label()}"
             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
         }
-
         map.overlays.add(startMarker)
         map.controller.animateTo(startMarker!!.position)
         map.invalidate()
@@ -313,13 +333,11 @@ class routeSelectionActivity : AppCompatActivity() {
 
     private fun placeEndMarker(n: Node) {
         endMarker?.let { map.overlays.remove(it) }
-
         endMarker = Marker(map).apply {
             position = GeoPoint(n.lat, n.lng)
             title = "END: ${n.label()}"
             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
         }
-
         map.overlays.add(endMarker)
         map.controller.animateTo(endMarker!!.position)
         map.invalidate()
@@ -353,17 +371,11 @@ class routeSelectionActivity : AppCompatActivity() {
             return
         }
 
-        val paths = rawPaths
-
-        // Draw all paths on map
-        paths.forEachIndexed { index, path ->
+        rawPaths.forEachIndexed { index, path ->
             drawRouteLine(path, index)
         }
 
-        // Populate route buttons
         layoutRouteSelection.visibility = View.VISIBLE
-
-        // Hide all buttons first
         pathButtons.forEach { it.visibility = View.GONE }
 
         val maxDistance = routeOptions.maxOfOrNull { it.distanceMeters } ?: 0.0
@@ -375,27 +387,20 @@ class routeSelectionActivity : AppCompatActivity() {
             val distDisplay = if (distM >= 1000) "%.1fkm".format(distM / 1000) else "${distM.toInt()}m"
 
             val isNotRecommended = if (isSevereWeather) {
-                // If severe weather, not recommended if it has unsheltered segments
                 !isPathSheltered(option.path)
             } else {
-                // Normal weather: longest distance is not recommended
                 option.distanceMeters == maxDistance && routeOptions.size > 1
             }
 
             val suffix = if (isNotRecommended) " (not recommend)" else ""
-
             btn.text = "Path ${index + 1}: ${mins}min (${distDisplay})${suffix}"
             btn.visibility = View.VISIBLE
-
-            btn.setOnClickListener {
-                selectRoute(index)
-            }
+            btn.setOnClickListener { selectRoute(index) }
         }
 
-        // Auto-select first route
         selectRoute(0)
 
-        val msg = when (paths.size) {
+        val msg = when (rawPaths.size) {
             1 -> "1 route found."
             2 -> "2 routes found. Select a path."
             else -> "3 routes found. Select a path."
@@ -410,23 +415,17 @@ class routeSelectionActivity : AppCompatActivity() {
         selectedRouteIndex = index
         latestPath = routeOptions[index].path
 
-        // Update button highlights
         routeOptions.forEachIndexed { i, _ ->
             val btn = pathButtons[i]
             if (i == index) {
-                btn.backgroundTintList = android.content.res.ColorStateList.valueOf(
-                    Color.parseColor("#0288D1") // darker blue for selected
-                )
+                btn.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#0288D1"))
                 btn.setTextColor(Color.WHITE)
             } else {
-                btn.backgroundTintList = android.content.res.ColorStateList.valueOf(
-                    Color.parseColor("#81D4FA") // light blue for unselected
-                )
+                btn.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#81D4FA"))
                 btn.setTextColor(Color.BLACK)
             }
         }
 
-        // Highlight the selected polyline on the map
         highlightSelectedPolyline(routeOptions[index].polyline)
         zoomToPath(routeOptions[index].path)
     }
@@ -444,38 +443,28 @@ class routeSelectionActivity : AppCompatActivity() {
             title = "Route ${routeIndex + 1}"
         }
 
-        val option = RouteOption(
-            index = routeIndex,
-            path = path,
-            polyline = line,
-            distanceMeters = distanceMeters
-        )
-
-        routeOptions.add(option)
+        routeOptions.add(RouteOption(index = routeIndex, path = path, polyline = line, distanceMeters = distanceMeters))
         map.overlays.add(line)
         routeLines.add(line)
     }
 
     private fun highlightSelectedPolyline(selected: Polyline?) {
         routeOptions.forEach { option ->
-            val normalColor = getRouteColor(option.index)
-            option.polyline.outlinePaint.color = normalColor
+            option.polyline.outlinePaint.color = getRouteColor(option.index)
             option.polyline.width = 10f
             option.polyline.outlinePaint.strokeWidth = 10f
         }
-
         selected?.let {
             it.width = 18f
             it.outlinePaint.strokeWidth = 18f
         }
-
         map.invalidate()
     }
 
     private fun getRouteColor(index: Int): Int {
         return when (index) {
             0 -> Color.BLUE
-            1 -> Color.parseColor("#FF9800") // orange
+            1 -> Color.parseColor("#FF9800")
             2 -> Color.GREEN
             else -> Color.MAGENTA
         }
@@ -483,29 +472,15 @@ class routeSelectionActivity : AppCompatActivity() {
 
     private fun zoomToPath(path: List<Node>) {
         if (path.isEmpty()) return
-
         val geoPoints = path.map { GeoPoint(it.lat, it.lng) }
-
-        if (geoPoints.size == 1) {
-            map.controller.animateTo(geoPoints.first())
-            return
-        }
-
-        val minLat = geoPoints.minOf { it.latitude }
-        val maxLat = geoPoints.maxOf { it.latitude }
-        val minLon = geoPoints.minOf { it.longitude }
-        val maxLon = geoPoints.maxOf { it.longitude }
-
-        val paddingLat = 0.0003
-        val paddingLon = 0.0003
+        if (geoPoints.size == 1) { map.controller.animateTo(geoPoints.first()); return }
 
         val box = BoundingBox(
-            maxLat + paddingLat,
-            maxLon + paddingLon,
-            minLat - paddingLat,
-            minLon - paddingLon
+            geoPoints.maxOf { it.latitude } + 0.0003,
+            geoPoints.maxOf { it.longitude } + 0.0003,
+            geoPoints.minOf { it.latitude } - 0.0003,
+            geoPoints.minOf { it.longitude } - 0.0003
         )
-
         map.zoomToBoundingBox(box, true, 120)
     }
 

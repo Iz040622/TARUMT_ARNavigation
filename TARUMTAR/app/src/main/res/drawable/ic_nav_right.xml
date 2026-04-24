@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+
+    <!--
+        Turn-RIGHT arrow:
+        Exact horizontal mirror of ic_nav_left.xml.
+        Shaft rises from bottom-LEFT area (x=18), curves right, arrowhead points RIGHT.
+    -->
+
+    <!-- Curved shaft: starts at bottom (x=18), rises, then curves right to (x=36) -->
+    <path
+        android:pathData="M18,44 L18,26 Q18,14 30,14 L36,14"
+        android:strokeWidth="7"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+
+    <!-- Arrowhead pointing RIGHT  (tip at x=44, base from y=6 to y=22) -->
+    <path
+        android:pathData="M30,6 L44,14 L30,22 Z"
+        android:fillColor="#FFFFFF" />
+
+</vector>

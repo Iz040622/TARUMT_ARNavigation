@@ -90,6 +90,57 @@
 
         </LinearLayout>
 
+        <!-- Language Selection -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="10dp"
+            android:layout_marginTop="4dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Language:"
+                android:textColor="@android:color/black"
+                android:textSize="14sp"
+                android:layout_marginEnd="8dp" />
+
+            <Button
+                android:id="@+id/btnRouteLangEn"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="EN"
+                android:textSize="12sp"
+                android:textColor="@android:color/white"
+                android:backgroundTint="#1E88E5"
+                android:layout_marginEnd="6dp"
+                android:paddingHorizontal="12dp" />
+
+            <Button
+                android:id="@+id/btnRouteLangZh"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="中文"
+                android:textSize="12sp"
+                android:textColor="@android:color/white"
+                android:backgroundTint="#9E9E9E"
+                android:layout_marginEnd="6dp"
+                android:paddingHorizontal="12dp" />
+
+            <Button
+                android:id="@+id/btnRouteLangMs"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="BM"
+                android:textSize="12sp"
+                android:textColor="@android:color/white"
+                android:backgroundTint="#9E9E9E"
+                android:paddingHorizontal="12dp" />
+
+        </LinearLayout>
+
         <!-- Start -->
         <AutoCompleteTextView
             android:id="@+id/etStart"

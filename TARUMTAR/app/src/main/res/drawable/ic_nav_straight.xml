@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+
+    <!-- Shaft (rectangle) -->
+    <path
+        android:pathData="M20,44 L20,22 L28,22 L28,44 Z"
+        android:fillColor="#FFFFFF" />
+
+    <!-- Arrowhead (triangle pointing up) -->
+    <path
+        android:pathData="M12,24 L24,5 L36,24 Z"
+        android:fillColor="#FFFFFF" />
+
+</vector>
