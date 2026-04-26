@@ -1,11 +1,17 @@
 package com.example.tarumtar.scanObject
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.example.tarumtar.R
 import com.google.ar.core.ArCoreApk
 import com.google.ar.core.AugmentedImage
@@ -45,21 +51,39 @@ class ScanObject : AppCompatActivity() {
         setContentView(R.layout.scan_object)
         arSceneView = findViewById(R.id.arSceneView)
         initializeSceneView()
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), 2003)
+        }
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, results: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, results)
-        if (!CameraPermissionHelper.hasCameraPermission(this)) {
-            Toast.makeText(
-                this, "Camera permissions are needed to run this application", Toast.LENGTH_LONG
-            )
-                .show()
-            if (!CameraPermissionHelper.shouldShowRequestPermissionRationale(this)) {
-                // Permission denied with checking "Do not ask again".
-                CameraPermissionHelper.launchPermissionSettings(this)
+        
+        if (requestCode == 2003) {
+            val granted = results.isNotEmpty() && results[0] == PackageManager.PERMISSION_GRANTED
+            if (!granted) {
+                showSettingsDialog()
             }
-            finish()
         }
+    }
+
+    private fun showSettingsDialog() {
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Camera permission required")
+            .setMessage("Add camera permission via Settings?")
+            .setPositiveButton("SETTINGS") { _, _ ->
+                val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.fromParts("package", packageName, null)
+                }
+                startActivity(intent)
+            }
+            .setNegativeButton("CANCEL") { dialog, _ ->
+                dialog.dismiss()
+                finish()
+            }
+            .setCancelable(false)
+            .show()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -214,8 +238,7 @@ class ScanObject : AppCompatActivity() {
 
                 // ARCore requires camera permissions to operate. If we did not yet obtain runtime
                 // permission on Android M and above, now is a good time to ask the user for it.
-                if (!CameraPermissionHelper.hasCameraPermission(this)) {
-                    CameraPermissionHelper.requestCameraPermission(this)
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
                     return
                 }
 

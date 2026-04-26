@@ -1,10 +1,15 @@
 package com.example.tarumtar.petModule
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.example.tarumtar.R
 import com.google.ar.core.Config
 import com.google.ar.core.HitResult
@@ -140,6 +145,40 @@ class petARActivity : AppCompatActivity() {
         setupChangePetButton()
         
         pointManager = PointManager(this)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        val isCameraRequest = permissions.contains(Manifest.permission.CAMERA)
+        val granted = grantResults.isNotEmpty() && grantResults[permissions.indexOf(Manifest.permission.CAMERA)] == PackageManager.PERMISSION_GRANTED
+        
+        if (isCameraRequest && !granted) {
+            // Intercept the denial to show our custom dialog instead of ArFragment's default dialog
+            showSettingsDialog()
+        } else {
+            super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        }
+    }
+
+    private fun showSettingsDialog() {
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Camera permission required")
+            .setMessage("Add camera permission via Settings?")
+            .setPositiveButton("SETTINGS") { _, _ ->
+                val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.fromParts("package", packageName, null)
+                }
+                startActivity(intent)
+            }
+            .setNegativeButton("CANCEL") { dialog, _ ->
+                dialog.dismiss()
+                finish()
+            }
+            .setCancelable(false)
+            .show()
     }
 
     private fun loadPetModels() {

@@ -1181,8 +1181,26 @@ class ARNavigationActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             if (granted) {
                 startLocationUpdates()
             } else {
-                Toast.makeText(this, "Camera and location permissions are required.", Toast.LENGTH_LONG).show()
+                showSettingsDialog()
             }
         }
+    }
+
+    private fun showSettingsDialog() {
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Camera and location permissions required")
+            .setMessage("Add camera and location permissions via Settings?")
+            .setPositiveButton("SETTINGS") { _, _ ->
+                val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.fromParts("package", packageName, null)
+                }
+                startActivity(intent)
+            }
+            .setNegativeButton("CANCEL") { dialog, _ ->
+                dialog.dismiss()
+                finish()
+            }
+            .setCancelable(false)
+            .show()
     }
 }
